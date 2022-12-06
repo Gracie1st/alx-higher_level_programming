@@ -1,9 +1,11 @@
 #!/usr/bin/python3
-def remove_char_at(str, n):
-    i = 0
-    new_str = ""
-    for ch in str:
-        if i != n:
-            new_str += ch
-        i += 1
-    return new_str
+def fizzbuzz():
+    for num in range(1, 101):
+        if num % 3 == 0 and num % 5 == 0:
+            print("FizzBuzz ", end="")
+        elif num % 5 == 0:
+            print("Buzz ", end="")
+        elif num % 3 == 0:
+            print("Fizz ", end="")
+        else:
+            print(f"{num} ", end="")
