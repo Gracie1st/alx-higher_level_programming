@@ -5,7 +5,7 @@
 import math
 
 
-class MagicClass
+class MagicClass:
     """Represent a circle."""
 
     def __init__(self, radius=0):
@@ -16,7 +16,7 @@ class MagicClass
         self.__radius = 0
         if type(radius) is not int and type(radius) is not float:
             raise TypeError("radius must be a number")
-        self.__radius = radius
+        self.__radius = radiu
 
     def area(self):
         """Return the area of the MagicClass."""
