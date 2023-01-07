@@ -1,379 +1,84 @@
-doctest — Testing Through Documentation
-
-Purpose:	Write automated tests as part of the documentation for a module.
-
-doctest tests source code by running examples embedded in the documentation and verifying that they produce the expected results. It works by parsing the help text to find examples, running them, then comparing the output text against the expected value. Many developers find doctest easier to use than unittest because, in its simplest form, there is no API to learn before using it. However, as the examples become more complex the lack of fixture management can make writing doctest tests more cumbersome than using unittest.
-
-
-
-Getting Started
-
-The first step to setting up doctests is to use the interactive interpreter to create examples and then copy and paste them into the docstrings in the module. Here, my_function() has two examples given:
-
-
-
-doctest_simple.py
-
-def my_function(a, b):
-
-    """
-
-    >>> my_function(2, 3)
-
-    6
-
-    >>> my_function('a', 3)
-
-    'aaa'
-
-    """
-
-    return a * b
-
-To run the tests, use doctest as the main program via the -m option. Usually no output is produced while the tests are running, so the next example includes the -v option to make the output more verbose.
-
-
-
-$ python3 -m doctest -v doctest_simple.py
-
-
-
-Trying:
-
-    my_function(2, 3)
-
-Expecting:
-
-    6
-
-ok
-
-Trying:
-
-    my_function('a', 3)
-
-Expecting:
-
-    'aaa'
-
-ok
-
-1 items had no tests:
-
-    doctest_simple
-
-1 items passed all tests:
-
-   2 tests in doctest_simple.my_function
-
-2 tests in 2 items.
-
-2 passed and 0 failed.
-
-Test passed.
-
-Examples cannot usually stand on their own as explanations of a function, so doctest also allows for surrounding text. It looks for lines beginning with the interpreter prompt (>>>) to find the beginning of a test case, and the case is ended by a blank line or by the next interpreter prompt. Intervening text is ignored, and can have any format as long as it does not look like a test case.
-
-
-
-doctest_simple_with_docs.py
-
-def my_function(a, b):
-
-    """Returns a * b.
-
-
-
-    Works with numbers:
-
-
-
-    >>> my_function(2, 3)
-
-    6
-
-
-
-    and strings:
-
-
-
-    >>> my_function('a', 3)
-
-    'aaa'
-
-    """
-
-    return a * b
-
-The surrounding text in the updated docstring makes it more useful to a human reader. Because it is ignored by doctest, the results are the same.
-
-
-
-$ python3 -m doctest -v doctest_simple_with_docs.py
-
-
-
-Trying:
-
-    my_function(2, 3)
-
-Expecting:
-
-    6
-
-ok
-
-Trying:
-
-    my_function('a', 3)
-
-Expecting:
-
-    'aaa'
-
-ok
-
-1 items had no tests:
-
-    doctest_simple_with_docs
-
-1 items passed all tests:
-
-   2 tests in doctest_simple_with_docs.my_function
-
-2 tests in 2 items.
-
-2 passed and 0 failed.
-
-Test passed.
-
-Handling Unpredictable Output
-
-There are other cases where the exact output may not be predictable, but should still be testable. For example, local date and time values and object ids change on every test run, the default precision used in the representation of floating point values depend on compiler options, and string representations of container objects like dictionaries may not be deterministic. Although these conditions cannot be controlled, there are techniques for dealing with them.
-
-
-
-For example, in CPython, object identifiers are based on the memory address of the data structure holding the object.
-
-
-
-doctest_unpredictable.py
-
-class MyClass:
-
-    pass
-
-
-
-
-
-def unpredictable(obj):
-
-    """Returns a new list containing obj.
-
-
-
-    >>> unpredictable(MyClass())
-
-    [<doctest_unpredictable.MyClass object at 0x10055a2d0>]
-
-    """
-
-    return [obj]
-
-These id values change each time a program runs, because it is loaded into a different part of memory.
-
-
-
-$ python3 -m doctest -v doctest_unpredictable.py
-
-
-
-Trying:
-
-    unpredictable(MyClass())
-
-Expecting:
-
-    [<doctest_unpredictable.MyClass object at 0x10055a2d0>]
-
-****************************************************************
-
-File ".../doctest_unpredictable.py", line 17, in doctest_unpredi
-
-ctable.unpredictable
-
-Failed example:
-
-    unpredictable(MyClass())
-
-Expected:
-
-    [<doctest_unpredictable.MyClass object at 0x10055a2d0>]
-
-Got:
-
-    [<doctest_unpredictable.MyClass object at 0x1047a2710>]
-
-2 items had no tests:
-
-    doctest_unpredictable
-
-    doctest_unpredictable.MyClass
-
-****************************************************************
-
-1 items had failures:
-
-   1 of   1 in doctest_unpredictable.unpredictable
-
-1 tests in 3 items.
-
-0 passed and 1 failed.
-
-***Test Failed*** 1 failures.
-
-When the tests include values that are likely to change in unpredictable ways, and where the actual value is not important to the test results, use the ELLIPSIS option to tell doctest to ignore portions of the verification value.
-
-
-
-doctest_ellipsis.py
-
-class MyClass:
-
-    pass
-
-
-
-
-
-def unpredictable(obj):
-
-    """Returns a new list containing obj.
-
-
-
-    >>> unpredictable(MyClass()) #doctest: +ELLIPSIS
-
-    [<doctest_ellipsis.MyClass object at 0x...>]
-
-    """
-
-    return [obj]
-
-The “#doctest: +ELLIPSIS” comment after the call to unpredictable() tells doctest to turn on the ELLIPSIS option for that test. The ... replaces the memory address in the object id, so that portion of the expected value is ignored and the actual output matches and the test passes.
-
-
-
-$ python3 -m doctest -v doctest_ellipsis.py
-
-
-
-Trying:
-
-    unpredictable(MyClass()) #doctest: +ELLIPSIS
-
-Expecting:
-
-    [<doctest_ellipsis.MyClass object at 0x...>]
-
-ok
-
-2 items had no tests:
-
-    doctest_ellipsis
-
-    doctest_ellipsis.MyClass
-
-1 items passed all tests:
-
-   1 tests in doctest_ellipsis.unpredictable
-
-1 tests in 3 items.
-
-1 passed and 0 failed.
-
-Test passed.
-
-There are cases where the unpredictable value cannot be ignored, because that would make the test incomplete or inaccurate. For example, simple tests quickly become more complex when dealing with data types whose string representations are inconsistent. The string form of a dictionary, for example, may change based on the order the keys are added.
-
-
-
-doctest_hashed_values.py
-
-keys = ['a', 'aa', 'aaa']
-
-
-
-print('dict:', {k: len(k) for k in keys})
-
-print('set :', set(keys))
-
-Because of hash randomization and key collision, the internal key list order may be different for the dictionary each time the script runs. Sets use the same hashing algorithm, and exhibit the same behavior.
-
-
-
-$ python3 doctest_hashed_values.py
-
-
-
-dict: {'aa': 2, 'a': 1, 'aaa': 3}
-
-set : {'aa', 'a', 'aaa'}
-
-
-
-$ python3 doctest_hashed_values.py
-
-
-
-dict: {'a': 1, 'aa': 2, 'aaa': 3}
-
-set : {'a', 'aa', 'aaa'}
-
-The best way to deal with these potential discrepancies is to create tests that produce values that are not likely to change. In the case of dictionaries and sets, that might mean looking for specific keys individually, generating a sorted list of the contents of the data structure, or comparing against a literal value for equality instead of depending on the string representation.
-
-
-
-doctest_hashed_values_tests.py
-
-import collections
-
-
-
-
-
-def group_by_length(words):
-
-    """Returns a dictionary grouping words into sets by length.
-
-
-
-    >>> grouped = group_by_length([ 'python', 'module', 'of',
-
-    ... 'the', 'week' ])
-
-    >>> grouped == { 2:set(['of']),
-
-    ...              3:set(['the']),
-
-    ...              4:set(['week']),
-
-    ...              6:set(['python', 'module']),
-
-    ...              }
-
-    True
-
-
-
-    """
-
-    d = collections.defaultdict(set)
-
-    for word in words:
-
-        d[len(word)].add(word)
-
-    return d
+# Python - Test-driven development
+![alt text](https://s3.amazonaws.com/intranet-projects-files/holbertonschool-higher-level_programming+/246/giphy-4.gif)
+
+In this project, I started practicing test-driven development using `docstring`and `unittest` in Python.
+
+## Tests :heavy_check_mark:
+
+* [tests](./tests): Folder of test files. Includes both Holberton-provided ones as well as the following eight independently-developed:
+  * [0-add_integer.txt](./tests/0-add_integer.txt)
+  * [2-matrix_divided.txt](./tests/2-matrix_divided.txt)
+  * [3-say_my_name.txt](./tests/3-say_my_name.txt)
+  * [4-print_square.txt](./tests/4-print_square.txt)
+  * [5-text_indentation.txt](./tests/text_indentation.txt)
+  * [6-max_integer_test.py](./tests/6-max_integer_test.py)
+  * [100-matrix_mul.txt](./tests/100-matrix_mul.txt)
+  * [101-lazy_matrix_mul.txt](./tests/101-lazy_matrix_mul.txt)
+
+## Function Prototypes :floppy_disk:
+
+Prototypes for functions written in this project:
+
+| File                     | Prototype                                    |
+| ------------------------ | -------------------------------------------- |
+| `0-add_integer.py`       | `def add_integer(a, b=98):`                  |
+| `2-matrix_divided.py`    | `def matrix_divided(matrix, div):`           |
+| `3-say_my_name.py`       | `def say_my_name(first_name, last_name=""):` |
+| `4-print_square.py`      | `def print_square(size):`                    |
+| `5-text_indentation.py`  | `def text_indentation(text):`                |
+| `100-matrix_mul.py`      | `def matrix_mul(m_a, m_b):`                  |
+| `101-lazy_matrix_mul.py` | `def lazy_matrix_mul(m_a, m_b):`             |
+| `102-python.c`           | `void print_python_string(PyObject *p);`     |
+
+## Tasks :page_with_curl:
+
+* **0. Integers addition**
+  * [0-add_integer.py](./0-add_integer.py): Python function that returns the integer addition of two numbers.
+  * If either of `a` or `b` is not an `int` or `float`, a `TypeError` is raised with the message `a must be an integer` or `b must be an integer`.
+  * If either of `a` or `b` is a `float`, it is casted to an `int` before addition.
+
+* **1. Divide a matrix**
+  * [2-matrix_divided.py](./2-matrix_divided.py): Python function that divides all elements of a matrix by a common divisor.
+  * Returns a new matrix representing the division of all elements of `matrix` by `div`.
+  * Quotients are rounded to two decimal places.
+  * If `matrix` is not a list of lists of `int`s or `float`s, a `TypeError` is raised with the message `matrix must be a matrix (list of lists) of
+  integers/floats`.
+  * If `matrix` contains rows of different lengths, a `TypeError` is raised with the message `Each row of the matrix must have the same size`.
+  * If the divisor `div` is not an `int` or `float`, a `TypeError` is raised with the message `div must be a number`.
+  * If `div` is `0`, a `ZeroDivisionError` is raised with the message `division by zero`.
+
+* **2. Say my name**
+  * [3-say_my_name.py](./3-say_my_name.py): Python function that prints a name in the format `My name is <first_name> <last_name>`.
+  * If either of `first_name` or `last_name` is not a `str`, a `TypeError` is raised with the message `first_name must be a string` or `last_name must be a string`.
+
+* **3. Print square**
+  * [4-print_square.py](./4-print_square.py): Python function that prints a square using the `#` character.
+  * The paramter `size` represents the height/width of the square.
+  * If `size` is not an `int`, a `TypeError` is raised  with the message, `size must be an integer`.
+  * If `size` is less than `0`, a `ValueError` is raised with the message `size must be >= 0`.
+
+* **4. Text indentation**
+  * [5-text_indentation.py](./5-text_indentation.py): Python function that prints text with indentation.
+  * Two new lines are printed after any `.`, `?`, or `:` character.
+  * If `text` is not a `str`, a `TypeError` is raised with the message `text must be a string`.
+  * No spaces are printed at the beginning or end of each printed line.
+
+* **5. Max integer - Unittest**
+  * [tests/6-max_integer_test.py](./tests/6-max_integer_text.py): Python class/scriptthat runs unittests for the function `def max_integer(list=[]):`.
+
+* **6. Matrix multiplication**
+  * [100-matrix_mul.py](./100-matrix_mul.py): Python function that multiplies two matrices.
+  * Returns a new matrix representing the multiplication of `m_a` by `m_b`.
+  * If either of `m_a` or `m_b` is empty (ie. `== []` or `== [[]]`), a `ValueError` is raised with the message `m_a can't be empty` or `m_b can't be empty`.
+  * If either of `m_a` or `m_b` is not a list, a `TypeError` is raised with the message `m_a must be a list` or `m_b` must be a list.
+  * If either of `m_a` or `m_b` is not a list of lists, a `TypeError` is raised with the message `m_a must be a list of lists` or `m_b must be a list of lists`.
+  * If either of `m_a` or `m_b` is not a list of lists of `int`s or `float`s, a `TypeError` is raised with the message `m_a should contain only integers or floats` or `m_b should contain only integers or floats`.
+  * If either of `m_a` or `m_b` contains rows of different lengths, a `TypeError` is raised with the message `each row of m_a must should be of the same size` or `each row of m_b must should be of the same size`.
+  * If `m_a` and `m_b` cannot be multiplied (ie. row size of `m_a` does not match column size of `m_b`), a `ValueError` is raised with the message `m_a and m_b can't be multiplied`.
+
+* **7. Lazy matrix multiplication**
+  * [101-lazy_matrix_mul.py](./101-lazy_matrix_mul.py): Python function that multiplies two matrices using the module `NumPy`.
+  * Identical in function to [100-matrix_mul.py](./100-matrix_mul.py).
+
+* **8. CPython #3: Python Strings**
+  * [102-python.c](./102-python.c): C function that prints basic information about Python string objects.
